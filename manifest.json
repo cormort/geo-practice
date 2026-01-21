@@ -1,0 +1,21 @@
+{
+  "name": "幾何模型實驗室",
+  "short_name": "Geometry Lab",
+  "description": "國中幾何核心觀念 · 動態互動探索",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/npm/lucide-static@0.473.0/icons/triangle.svg",
+      "sizes": "24x24",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/npm/lucide-static@0.473.0/icons/triangle.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>幾何模型實驗室 | Geometry Lab</title>
+
+    <!-- SEO & Metadata -->
+    <meta
+      name="description"
+      content="互動式幾何模型學習網。探索國中幾何九大核心工具，包含等高模型、蝴蝶模型、鳥頭模型等動態實驗。"
+    />
+    <meta
+      name="keywords"
+      content="幾何, 數學, 互動教學, JSXGraph, 國中數學, 幾何模型"
+    />
+    <meta property="og:title" content="幾何模型實驗室" />
+    <meta property="og:description" content="互動式幾何探索工具" />
+
+    <!-- Libraries -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraph.css"
+    />
+    <script
+      type="text/javascript"
+      charset="UTF-8"
+      src="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraphcore.js"
+    ></script>
+
+    <!-- Project Styles -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+    <button class="theme-toggle" id="themeToggle" aria-label="切換深色模式">
+        <!-- Sun Icon -->
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <!-- Moon Icon -->
+    </button>
+    <h1>幾何模型實驗室</h1>
+      <div class="subtitle">國中幾何核心觀念 · 動態互動探索</div>
+      
+      <div class="search-container">
+          <input type="text" id="searchInput" placeholder="搜尋模型..." aria-label="搜尋模型">
+          <button id="favFilterBtn" aria-label="顯示收藏" class="btn-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+      </div>
+
+      <div class="hint">✨ 提示：拖曳卡片可排序，點擊進入實驗室</div>
+    </header>
+
+    <main class="grid-container" id="app">
+      <!-- JS will populate cards here -->
+    </main>
+
+    <footer>
+      <p>© 2025 Geometry Lab | Designed for Interactive Learning</p>
+    </footer>
+
+    <!-- Modal -->
+    <div class="modal" id="infoModal">
+      <div class="modal-content">
+        <div class="close-btn">&times;</div>
+
+        <div class="modal-header">
+          <h2 id="mTitle">模型標題</h2>
+        </div>
+
+        <div class="modal-body-grid">
+          <div id="jxgbox" class="jxgbox"></div>
+          <div class="info-panel">
+            <p
+              id="mDesc"
+              style="
+                font-size: 1.1em;
+                color: #475569;
+                line-height: 1.8;
+                margin-top: 0;
+              "
+            ></p>
+            <div class="formula-box">
+              <strong>核心公式：</strong>
+              <div id="mFormula" style="margin-top: 10px"></div>
+            </div>
+            <div class="key-point">
+              <h4>
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                實驗指南
+              </h4>
+              <p id="mTips" style="margin: 0; text-align: justify"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project Logic -->
+    <script src="main.js"></script>
+  </body>
+</html>
