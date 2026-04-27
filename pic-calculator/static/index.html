@@ -522,13 +522,20 @@ function loadFile(file) {
 async function toggleCamera() {
   const sec = document.getElementById('camera-section');
   if (sec.style.display === 'block') { stopCamera(); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('此瀏覽器不支援相機存取。\n\n請確保：\n1. 使用 HTTPS 連線\n2. 或在網址列點擊鎖頭圖示允許相機權限\n3. 行動裝置需點擊右上角設定 → 允許相機');
+    return;
+  }
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     document.getElementById('video').srcObject = cameraStream;
     sec.style.display = 'block';
     document.getElementById('camera-btn').textContent = '✕ 關閉相機';
   } catch (err) {
-    alert('無法存取相機：' + err.message);
+    let msg = '無法存取相機：' + err.message;
+    if (err.name === 'NotAllowedError') msg += '\n\n請在瀏覽器設定中允許相機權限';
+    if (err.name === 'NotFoundError') msg += '\n\n找不到相機設備';
+    alert(msg);
   }
 }
 function stopCamera() {
