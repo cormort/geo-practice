@@ -596,10 +596,14 @@ function maxCols() { return Math.max(...tableData.map(r => r.length), 0); }
 function renderTable() {
   const table = document.getElementById('data-table');
   const cols = maxCols();
-  const headerRow = parseInt(document.getElementById('headerRow').value) || 1;
-  const endRowVal = parseInt(document.getElementById('endRow').value) || 0;
-  const startCol = parseInt(document.getElementById('startCol').value) || 1;
-  const endColVal = parseInt(document.getElementById('endCol').value) || 0;
+  const headerRowEl = document.getElementById('headerRow');
+  const endRowEl = document.getElementById('endRow');
+  const startColEl = document.getElementById('startCol');
+  const endColEl = document.getElementById('endCol');
+  const headerRow = headerRowEl ? (parseInt(headerRowEl.value) || 1) : 1;
+  const endRowVal = endRowEl ? (parseInt(endRowEl.value) || 0) : 0;
+  const startCol = startColEl ? (parseInt(startColEl.value) || 1) : 1;
+  const endColVal = endColEl ? (parseInt(endColEl.value) || 0) : 0;
 
   let html = '<thead><tr><th class="row-head">列＼欄</th>';
   for (let c = 0; c < cols; c++) {
@@ -704,10 +708,14 @@ function clearSelections() {
     ============================================================= */
 function validate() {
   if (!tableData.length) { alert('尚無資料'); return; }
-  const headerRow = parseInt(document.getElementById('headerRow').value) || 1;
-  const endRow = parseInt(document.getElementById('endRow').value) || 0;
-  const startCol = parseInt(document.getElementById('startCol').value) || 1;
-  const endCol = parseInt(document.getElementById('endCol').value) || 0;
+  const headerRowEl = document.getElementById('headerRow');
+  const endRowEl = document.getElementById('endRow');
+  const startColEl = document.getElementById('startCol');
+  const endColEl = document.getElementById('endCol');
+  const headerRow = headerRowEl ? (parseInt(headerRowEl.value) || 1) : 1;
+  const endRow = endRowEl ? (parseInt(endRowEl.value) || 0) : 0;
+  const startCol = startColEl ? (parseInt(startColEl.value) || 1) : 1;
+  const endCol = endColEl ? (parseInt(endColEl.value) || 0) : 0;
 
   let mode, selectedIndices;
   if (selectedCols.length >= 2) {
@@ -751,7 +759,8 @@ function renderSummary({ kind, text }) {
 
 // 範圍 input 變動時重繪
 ['headerRow', 'endRow', 'startCol', 'endCol'].forEach(id => {
-  document.getElementById(id).addEventListener('change', () => { if (tableData.length) renderTable(); });
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', () => { if (tableData.length) renderTable(); });
 });
 </script>
 </body>
