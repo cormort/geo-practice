@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>圖片計算器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f6fa;
+    --card: #ffffff;
+    --primary: #4361ee;
+    --primary-h: #3451d1;
+    --success: #27ae60;
+    --error: #e74c3c;
+    --warn: #f39c12;
+    --info: #2980b9;
+    --border: #e0e3ef;
+    --text: #2d3436;
+    --muted: #636e72;
+    --radius: 12px;
+    --plus: #2980b9;
+    --minus: #c0392b;
+    --target: #d35400;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; min-height: 100vh; }
+
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(67,97,238,.3);
+  }
+  header h1 { font-size: 1.25rem; font-weight: 600; }
+  header .icon { font-size: 1.5rem; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  .upload-zone {
+    background: var(--card);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--primary); background: #f0f3ff; }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-zone .up-icon { font-size: 3rem; margin-bottom: 12px; }
+  .upload-zone p { color: var(--muted); font-size: .95rem; }
+  .upload-zone strong { color: var(--primary); }
+
+  .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 8px; font-size: .92rem; font-weight: 600;
+    border: none; cursor: pointer; transition: opacity .15s, transform .1s, background .15s;
+    background: var(--primary); color: #fff;
+  }
+  .btn:hover { opacity: .9; }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+  .btn-success { background: var(--success); }
+  .btn-warn { background: var(--warn); }
+  .btn-danger { background: var(--error); }
+  .btn-ghost { background: transparent; color: var(--muted); padding: 6px 10px; }
+  .btn-ghost:hover { background: #eef0f5; opacity: 1; }
+  .btn-sm { padding: 6px 12px; font-size: .82rem; }
+
+  #preview-wrap { margin-top: 20px; display: none; }
+  #preview-wrap img { max-width: 100%; max-height: 280px; border-radius: 10px; border: 1px solid var(--border); display: block; margin: 0 auto; }
+
+  #camera-section { display: none; margin-top: 16px; }
+  #video { width: 100%; max-height: 280px; border-radius: 10px; border: 1px solid var(--border); background: #000; }
+
+  .spinner-wrap { display: none; flex-direction: column; align-items: center; gap: 12px; padding: 32px; }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 4px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #workspace { display: none; margin-top: 24px; }
+
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 16px; overflow: hidden; }
+  .card-header {
+    padding: 12px 18px; font-weight: 700; font-size: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .card-body { padding: 14px 18px; }
+
+  .summary-banner {
+    padding: 12px 16px; font-weight: 600; border-radius: var(--radius); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px; font-size: .95rem;
+  }
+  .summary-banner.ok { background: #eafaf1; color: #1a6640; border: 1px solid #a9dfbf; }
+  .summary-banner.err { background: #fdedec; color: #922b21; border: 1px solid #f1948a; }
+  .summary-banner.warn { background: #fef9e7; color: #7d6608; border: 1px solid #f9e79f; }
+  .summary-banner.info { background: #e8f4fd; color: #1a5276; border: 1px solid #aed6f1; }
+
+  /* 控制面板 */
+  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: .78rem; color: var(--muted); font-weight: 600; }
+  .field input, .field select {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: .9rem; background: #fff; color: var(--text);
+  }
+  .field input { width: 92px; }
+  .field input.wide { width: 220px; }
+  .field select { min-width: 200px; }
+
+  .hint { font-size: .82rem; color: var(--muted); padding: 8px 12px; background: #f8f9fc; border-left: 3px solid var(--info); border-radius: 4px; }
+
+  /* 表格 */
+  .table-wrap { padding: 8px 8px 16px; overflow-x: auto; }
+  table.data { border-collapse: separate; border-spacing: 0; font-size: .88rem; }
+  table.data th, table.data td {
+    border: 1px solid var(--border);
+    padding: 6px 10px; text-align: right; white-space: nowrap;
+    background: #fff;
+    min-width: 60px;
+    position: relative;
+  }
+  table.data th { background: #f0f3ff; font-weight: 700; cursor: pointer; user-select: none; }
+  table.data th.row-head, table.data td.row-head {
+    background: #f0f3ff; font-weight: 700; text-align: center; cursor: pointer; user-select: none;
+    position: sticky; left: 0; z-index: 1;
+  }
+  table.data td.row-head { background: #f7f8fc; }
+  table.data td[contenteditable="true"] { background: #fff; outline: none; }
+  table.data td[contenteditable="true"]:focus { background: #fffbe6; box-shadow: inset 0 0 0 2px var(--warn); }
+
+  /* 欄/列點選狀態 */
+  table.data th.sel-plus, table.data td.row-head.sel-plus { background: #d6eaf8; color: var(--plus); }
+  table.data th.sel-plus::after, table.data td.row-head.sel-plus::after { content: "+"; font-size: 1rem; color: var(--plus); display: block; font-weight: 700; }
+  table.data th.sel-minus, table.data td.row-head.sel-minus { background: #fadbd8; color: var(--minus); }
+  table.data th.sel-minus::after, table.data td.row-head.sel-minus::after { content: "−"; font-size: 1rem; color: var(--minus); display: block; font-weight: 700; }
+  table.data th.sel-target, table.data td.row-head.sel-target { background: #fdebd0; color: var(--target); }
+  table.data th.sel-target::after, table.data td.row-head.sel-target::after { content: "="; font-size: 1rem; color: var(--target); display: block; font-weight: 700; }
+
+  /* 驗算結果 */
+  table.data td.cell-ok { background: #eafaf1; font-weight: 700; color: #1a6640; }
+  table.data td.cell-error { background: #fdedec; font-weight: 700; color: var(--error); }
+
+  /* 列範圍 */
+  table.data tbody tr.row-out td { opacity: .35; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 18px 0; font-size: .78rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid #ccc; }
+
+  .error-list { padding: 0 16px 16px; list-style: none; max-height: 200px; overflow-y: auto; }
+  .error-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 12px; margin-bottom: 6px;
+    background: #fdedec; border-radius: 6px; font-size: .88rem;
+    border-left: 4px solid var(--error);
+  }
+  .error-list li .ei { font-size: 1.05rem; flex-shrink: 0; }
+  .error-list li.ok-li { background: #eafaf1; border-left-color: var(--success); }
+
+  #file-input, #camera-input { display: none; }
+
+  details { background: #f8f9fc; border-radius: 8px; padding: 8px 12px; margin-top: 8px; }
+  details summary { cursor: pointer; font-size: .85rem; color: var(--muted); font-weight: 600; }
+  details > .controls { margin-top: 10px; }
+
+  @media (max-width: 600px) {
+    .controls { gap: 8px; }
+    .field input { width: 70px; }
+    .field input.wide { width: 100%; }
+    .field select { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="icon">🧮</span>
+  <h1>圖片計算器 — 表格辨識與驗算</h1>
+</header>
+
+<div class="container">
+
+  <div class="upload-zone" id="drop-zone">
+    <input type="file" id="file-input" accept="image/*">
+    <div class="up-icon">📷</div>
+    <p>拖曳圖片到此，或點擊 <strong>選擇檔案</strong></p>
+    <p style="margin-top:6px;font-size:.82rem;">支援 JPG / PNG / WEBP</p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="document.getElementById('file-input').click()">📁 選擇圖片</button>
+    <button class="btn btn-outline" id="camera-btn" onclick="toggleCamera()">📷 開啟相機</button>
+  </div>
+
+  <div id="camera-section">
+    <video id="video" autoplay playsinline></video>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn" onclick="capturePhoto()">📸 拍照</button>
+      <button class="btn btn-outline" onclick="stopCamera()">✕ 關閉相機</button>
+    </div>
+    <canvas id="canvas" style="display:none;"></canvas>
+  </div>
+
+  <div id="preview-wrap">
+    <img id="preview-img" src="" alt="預覽">
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn" id="analyze-btn" onclick="analyzeImage()">🔍 辨識表格</button>
+    </div>
+  </div>
+
+  <div class="spinner-wrap" id="spinner">
+    <div class="spinner"></div>
+    <p style="color:var(--muted)" id="spinner-text">辨識中，請稍候…</p>
+  </div>
+
+  <div id="workspace">
+    <!-- 摘要 -->
+    <div id="summary"></div>
+
+    <!-- 控制面板 -->
+    <div class="card">
+      <div class="card-header">
+        <span>⚙️ 驗算設定</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearSelections()">↺ 重置選取</button>
+      </div>
+      <div class="card-body">
+        <div class="hint">
+          👉 點 <strong>欄號</strong>(上方) → 進行欄驗算; 點 <strong>列號</strong>(左側) → 進行列驗算。<br>
+          每個欄/列點擊循環:<span style="color:var(--plus);font-weight:700">＋</span> 加項 → <span style="color:var(--minus);font-weight:700">−</span> 減項 → 取消。最後一個被選的會自動成為 <span style="color:var(--target);font-weight:700">＝</span> 合計。
+        </div>
+      </div>
+    </div>
+
+    <!-- 資料表格 -->
+    <div class="card">
+      <div class="card-header">
+        <span>📊 辨識結果 (可直接點 cell 修改)</span>
+        <button class="btn btn-outline btn-sm" onclick="resetAll()">🆕 重新辨識</button>
+      </div>
+      <div class="legend">
+        <span><i style="background:#d6eaf8"></i>+ 加項</span>
+        <span><i style="background:#fadbd8"></i>− 減項</span>
+        <span><i style="background:#fdebd0"></i>= 合計</span>
+        <span><i style="background:#eafaf1"></i>驗算正確</span>
+        <span><i style="background:#fdedec"></i>驗算錯誤</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data" id="data-table"></table>
+      </div>
+    </div>
+
+    <!-- 錯誤清單 -->
+    <div class="card" id="error-card" style="display:none;">
+      <div class="card-header"><span style="color:var(--error)">⚠️ 驗算錯誤</span></div>
+      <ul class="error-list" id="error-list"></ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =============================================================
+   驗算邏輯 (移植自 excel-validator/js/validator.js)
+   ============================================================= */
+const Validator = {
+  errors: new Map(),
+
+  validate(opts) {
+    this.errors.clear();
+    const { mode, sheetData, headerRow, endRow, startCol, endCol,
+            selectedIndices, selectedSigns, keywords, sumDirection } = opts;
+    const hRowIdx = headerRow - 1;
+    const sColIdx = startCol - 1;
+    const maxRow = endRow || sheetData.length;
+    const maxCol = endCol || (sheetData[hRowIdx]?.length || 0);
+    const headers = sheetData[hRowIdx] || [];
+
+    switch (mode) {
+      case 'vertical_group':
+        this._vGroup({ sheetData, hRowIdx, maxRow, sColIdx, maxCol,
+          nameColIndex: selectedIndices[0],
+          triggerKeywords: keywords.trigger, excludeKeywords: keywords.exclude,
+          sumDirection });
+        break;
+      case 'horizontal_group':
+        this._hGroup({ sheetData, headers, hRowIdx, maxRow, sColIdx, maxCol,
+          triggerKeywords: keywords.trigger, excludeKeywords: keywords.exclude });
+        break;
+      case 'vertical_indent':
+        this._vIndent({ sheetData, hRowIdx, maxRow, sColIdx, maxCol,
+          nameColIndex: selectedIndices[0] });
+        break;
+      case 'horizontal':
+        this._hManual({ sheetData, hRowIdx, maxRow, selectedIndices, selectedSigns });
+        break;
+      case 'vertical_row':
+        this._vManual({ sheetData, sColIdx, maxCol, selectedIndices, selectedSigns });
+        break;
+    }
+    return { errorCount: this.errors.size, errors: this.errors,
+      errorList: Array.from(this.errors.values()),
+      totalDiff: Array.from(this.errors.values()).reduce((s, e) => s + e.diff, 0) };
+  },
+
+  _vGroup({ sheetData, hRowIdx, maxRow, sColIdx, maxCol, nameColIndex,
+            triggerKeywords, excludeKeywords, sumDirection }) {
+    if (nameColIndex == null) return;
+    for (let c = sColIdx; c < maxCol; c++) {
+      if (c === nameColIndex) continue;
+      let tempSum = 0, pendingCheck = null;
+      for (let r = hRowIdx + 1; r < maxRow; r++) {
+        const row = sheetData[r];
+        if (!row) continue;
+        const name = String(row[nameColIndex] || '');
+        const val = this._num(row[c]);
+        const isNum = !isNaN(val);
+        const isTrig = triggerKeywords.some(k => name.toLowerCase().includes(k.toLowerCase()));
+        const isExcl = excludeKeywords.some(k => name.toLowerCase().includes(k.toLowerCase()));
+        if (isExcl) continue;
+        if (isTrig) {
+          if (sumDirection === 'bottom') {
+            if (isNum) this._check(r, c, tempSum, val);
+            tempSum = 0;
+          } else {
+            if (pendingCheck !== null) this._check(pendingCheck.row, c, tempSum, pendingCheck.target);
+            tempSum = 0;
+            pendingCheck = isNum ? { row: r, target: val } : null;
+          }
+        } else {
+          if (isNum) tempSum += val;
+        }
+      }
+      if (sumDirection === 'top' && pendingCheck !== null)
+        this._check(pendingCheck.row, c, tempSum, pendingCheck.target);
+    }
+  },
+
+  _hGroup({ sheetData, headers, hRowIdx, maxRow, sColIdx, maxCol,
+            triggerKeywords, excludeKeywords }) {
+    for (let r = hRowIdx + 1; r < maxRow; r++) {
+      const row = sheetData[r];
+      if (!row) continue;
+      let tempSum = 0;
+      for (let c = sColIdx; c < maxCol; c++) {
+        const headerName = String(headers[c] || '');
+        const val = this._num(row[c]);
+        const isNum = !isNaN(val);
+        if (triggerKeywords.some(k => headerName.toLowerCase().includes(k.toLowerCase()))) {
+          if (isNum) this._check(r, c, tempSum, val);
+          tempSum = 0;
+        } else if (!excludeKeywords.some(k => headerName.toLowerCase().includes(k.toLowerCase()))) {
+          if (isNum) tempSum += val;
+        }
+      }
+    }
+  },
+
+  _vIndent({ sheetData, hRowIdx, maxRow, sColIdx, maxCol, nameColIndex }) {
+    if (nameColIndex == null) return;
+    const rowLevels = [];
+    for (let r = hRowIdx + 1; r < maxRow; r++) {
+      const name = sheetData[r] ? String(sheetData[r][nameColIndex] || '') : '';
+      rowLevels[r] = this._leadingSpaces(name);
+    }
+    for (let c = sColIdx; c < maxCol; c++) {
+      if (c === nameColIndex) continue;
+      for (let r = hRowIdx + 1; r < maxRow - 1; r++) {
+        if (rowLevels[r + 1] > rowLevels[r]) {
+          const targetLevel = rowLevels[r + 1];
+          let childrenSum = 0, hasChild = false;
+          for (let k = r + 1; k < maxRow; k++) {
+            if (rowLevels[k] <= rowLevels[r]) break;
+            if (rowLevels[k] === targetLevel) {
+              const v = this._num(sheetData[k]?.[c]);
+              if (!isNaN(v)) { childrenSum += v; hasChild = true; }
+            }
+          }
+          if (hasChild) {
+            const tv = this._num(sheetData[r]?.[c]);
+            if (!isNaN(tv)) this._check(r, c, childrenSum, tv);
+          }
+        }
+      }
+    }
+  },
+
+  _hManual({ sheetData, hRowIdx, maxRow, selectedIndices, selectedSigns }) {
+    if (selectedIndices.length < 2) return;
+    const targetIdx = selectedIndices[selectedIndices.length - 1];
+    const inputs = selectedIndices.slice(0, -1);
+    for (let r = hRowIdx + 1; r < maxRow; r++) {
+      const row = sheetData[r];
+      if (!row) continue;
+      const tv = this._num(row[targetIdx]);
+      if (isNaN(tv)) continue;
+      let sum = 0, hasInput = false;
+      inputs.forEach(i => {
+        const v = this._num(row[i]);
+        if (!isNaN(v)) { sum += v * (selectedSigns.get(i) || 1); hasInput = true; }
+      });
+      if (hasInput) this._check(r, targetIdx, sum, tv);
+    }
+  },
+
+  _vManual({ sheetData, sColIdx, maxCol, selectedIndices, selectedSigns }) {
+    if (selectedIndices.length < 2) return;
+    const targetIdx = selectedIndices[selectedIndices.length - 1];
+    const inputs = selectedIndices.slice(0, -1);
+    for (let c = sColIdx; c < maxCol; c++) {
+      const tv = this._num(sheetData[targetIdx]?.[c]);
+      if (isNaN(tv)) continue;
+      let sum = 0, hasInput = false;
+      inputs.forEach(r => {
+        const v = this._num(sheetData[r]?.[c]);
+        if (!isNaN(v)) { sum += v * (selectedSigns.get(r) || 1); hasInput = true; }
+      });
+      if (hasInput) this._check(targetIdx, c, sum, tv);
+    }
+  },
+
+  _check(row, col, calc, actual) {
+    const tol = Math.max(1.0, Math.abs(actual) * 0.005);
+    const diff = actual - calc;
+    if (Math.abs(diff) > tol) {
+      const key = row * 100000 + col;
+      this.errors.set(key, {
+        row, col, expected: calc, actual, diff,
+        message: `第 ${row + 1} 列 / 第 ${col + 1} 欄 — 應為 ${calc.toLocaleString(undefined,{maximumFractionDigits:2})}，實際為 ${actual.toLocaleString(undefined,{maximumFractionDigits:2})} (差 ${diff >= 0 ? '+' : ''}${diff.toLocaleString(undefined,{maximumFractionDigits:2})})`,
+      });
+    } else {
+      const key = row * 100000 + col;
+      this.errors.set(key + 0.1, { row, col, ok: true });
+    }
+  },
+
+  hasErr(r, c) {
+    const e = this.errors.get(r * 100000 + c);
+    return e && !e.ok;
+  },
+  isOk(r, c) {
+    const e = this.errors.get(r * 100000 + c + 0.1);
+    return !!e;
+  },
+  errMsg(r, c) {
+    const e = this.errors.get(r * 100000 + c);
+    return e?.message || null;
+  },
+
+  _num(v) {
+    if (v === null || v === undefined || v === '') return NaN;
+    if (typeof v === 'number') return isNaN(v) ? NaN : v;
+    let s = v.toString().trim();
+    if (s === '') return NaN;
+    if (/[a-zA-Z一-龥]/.test(s)) return NaN;
+    if (!/^[-\d\.,，\(\)\$%\s]+$/.test(s)) return NaN;
+    s = s.replace(/[,，\$\s]/g, '').replace(/[%％]/g, '');
+    if (s.startsWith('(') && s.endsWith(')')) s = '-' + s.replace(/[\(\)]/g, '');
+    const n = parseFloat(s);
+    return isNaN(n) ? NaN : n;
+  },
+
+  _leadingSpaces(s) {
+    if (!s || typeof s !== 'string') return 0;
+    const m = s.match(/^[\s 　]*/);
+    return m ? m[0].length : 0;
+  },
+};
+
+/* =============================================================
+   應用狀態
+   ============================================================= */
+let currentFile = null;
+let cameraStream = null;
+let tableData = [];           // 2D array of strings
+let selectedCols = [];        // [colIdx, ...] - 順序代表加入順序，最後一個是合計
+let selectedRows = [];        // [rowIdx, ...]
+let signs = new Map();        // index -> +1 or -1
+let lastResult = null;
+
+/* =============================================================
+   檔案 / 相機
+   ============================================================= */
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+function loadFile(file) {
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('preview-img').src = ev.target.result;
+    document.getElementById('preview-wrap').style.display = 'block';
+    document.getElementById('workspace').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  stopCamera();
+}
+
+async function toggleCamera() {
+  const sec = document.getElementById('camera-section');
+  if (sec.style.display === 'block') { stopCamera(); return; }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    document.getElementById('video').srcObject = cameraStream;
+    sec.style.display = 'block';
+    document.getElementById('camera-btn').textContent = '✕ 關閉相機';
+  } catch (err) {
+    alert('無法存取相機：' + err.message);
+  }
+}
+function stopCamera() {
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  document.getElementById('camera-section').style.display = 'none';
+  document.getElementById('camera-btn').textContent = '📷 開啟相機';
+}
+function capturePhoto() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+    loadFile(file);
+  }, 'image/jpeg', 0.92);
+}
+
+/* =============================================================
+   OCR
+   ============================================================= */
+async function analyzeImage() {
+  if (!currentFile) { alert('請先選擇或拍攝圖片'); return; }
+  const spinner = document.getElementById('spinner');
+  const ws = document.getElementById('workspace');
+  ws.style.display = 'none';
+  spinner.style.display = 'flex';
+  document.getElementById('analyze-btn').disabled = true;
+  try {
+    const form = new FormData();
+    form.append('file', currentFile);
+    const resp = await fetch('/analyze', { method: 'POST', body: form });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || '伺服器錯誤');
+    tableData = data.table;
+    clearSelections();
+    ws.style.display = 'block';
+    renderSummary({ kind: 'info', text: `辨識完成 — 共 ${tableData.length} 列 × ${Math.max(...tableData.map(r => r.length))} 欄。請點擊欄號或列號進行驗算。` });
+    renderTable();
+    ws.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    document.getElementById('summary').innerHTML = `<div class="summary-banner err">❌ ${err.message}</div>`;
+    ws.style.display = 'block';
+  } finally {
+    spinner.style.display = 'none';
+    document.getElementById('analyze-btn').disabled = false;
+  }
+}
+
+function resetAll() {
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.getElementById('workspace').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  currentFile = null;
+  tableData = [];
+  clearSelections();
+}
+
+/* =============================================================
+   渲染
+   ============================================================= */
+function maxCols() { return Math.max(...tableData.map(r => r.length), 0); }
+
+function renderTable() {
+  const table = document.getElementById('data-table');
+  const cols = maxCols();
+  const headerRow = parseInt(document.getElementById('headerRow').value) || 1;
+  const endRowVal = parseInt(document.getElementById('endRow').value) || 0;
+  const startCol = parseInt(document.getElementById('startCol').value) || 1;
+  const endColVal = parseInt(document.getElementById('endCol').value) || 0;
+
+  let html = '<thead><tr><th class="row-head">列＼欄</th>';
+  for (let c = 0; c < cols; c++) {
+    const cls = colClass(c);
+    html += `<th class="${cls}" data-col="${c}" onclick="onColClick(${c})">${c + 1}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (let r = 0; r < tableData.length; r++) {
+    const inEndRow = !endRowVal || r < endRowVal;
+    const inStartRow = r >= 0;
+    const rowOut = !inEndRow || !inStartRow;
+    const rcls = rowOut ? 'row-out' : '';
+    const rowHeadCls = rowClass(r);
+    html += `<tr class="${rcls}"><td class="row-head ${rowHeadCls}" data-row="${r}" onclick="onRowClick(${r})">${r + 1}</td>`;
+    for (let c = 0; c < cols; c++) {
+      const v = tableData[r][c] ?? '';
+      const inCol = c + 1 >= startCol && (!endColVal || c + 1 <= endColVal);
+      let cellCls = '';
+      if (Validator.isOk(r, c)) cellCls = 'cell-ok';
+      if (Validator.hasErr(r, c)) cellCls = 'cell-error';
+      if (!inCol || rowOut) cellCls += ' row-out';
+      const title = Validator.errMsg(r, c) || '';
+      html += `<td class="${cellCls}" data-r="${r}" data-c="${c}" contenteditable="true" title="${title}" onblur="onCellEdit(this)">${escapeHtml(v)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" }[c]));
+}
+
+function colClass(c) {
+  if (selectedCols.includes(c)) {
+    const isLast = selectedCols[selectedCols.length - 1] === c;
+    if (isLast) return 'sel-target';
+    return signs.get(c) === -1 ? 'sel-minus' : 'sel-plus';
+  }
+  return '';
+}
+function rowClass(r) {
+  if (selectedRows.includes(r)) {
+    const isLast = selectedRows[selectedRows.length - 1] === r;
+    if (isLast) return 'sel-target';
+    return signs.get(r) === -1 ? 'sel-minus' : 'sel-plus';
+  }
+  return '';
+}
+
+/* =============================================================
+    點選邏輯
+    ============================================================= */
+function onColClick(c) {
+  cycleSelection(selectedCols, c);
+  renderTable();
+  if (selectedCols.length >= 2 || selectedRows.length >= 2) validate();
+}
+function onRowClick(r) {
+  cycleSelection(selectedRows, r);
+  renderTable();
+  if (selectedCols.length >= 2 || selectedRows.length >= 2) validate();
+}
+function cycleSelection(arr, idx) {
+  const pos = arr.indexOf(idx);
+  if (pos === -1) {
+    arr.push(idx);
+    signs.set(idx, +1);
+  } else if (signs.get(idx) === +1) {
+    signs.set(idx, -1);
+  } else {
+    arr.splice(pos, 1);
+    signs.delete(idx);
+  }
+}
+
+function onCellEdit(td) {
+  const r = +td.dataset.r, c = +td.dataset.c;
+  const newVal = td.innerText.trim();
+  while (tableData[r].length <= c) tableData[r].push('');
+  tableData[r][c] = newVal;
+  // 編輯後清掉舊驗算結果
+  Validator.errors.clear();
+  td.classList.remove('cell-ok', 'cell-error');
+  td.title = '';
+}
+
+function clearSelections() {
+  selectedCols = [];
+  selectedRows = [];
+  signs.clear();
+  Validator.errors.clear();
+  document.getElementById('error-card').style.display = 'none';
+  if (tableData.length) renderTable();
+  renderSummary({ kind: 'info', text: '選取已重置。' });
+}
+
+/* =============================================================
+    驗算
+    ============================================================= */
+function validate() {
+  if (!tableData.length) { alert('尚無資料'); return; }
+  const headerRow = parseInt(document.getElementById('headerRow').value) || 1;
+  const endRow = parseInt(document.getElementById('endRow').value) || 0;
+  const startCol = parseInt(document.getElementById('startCol').value) || 1;
+  const endCol = parseInt(document.getElementById('endCol').value) || 0;
+
+  let mode, selectedIndices;
+  if (selectedCols.length >= 2) {
+    mode = 'horizontal';
+    selectedIndices = selectedCols.slice();
+  } else if (selectedRows.length >= 2) {
+    mode = 'vertical_row';
+    selectedIndices = selectedRows.slice();
+  } else {
+    renderSummary({ kind: 'warn', text: '⚠️ 請至少選 2 個欄或 2 個列 (最後一個會自動視為合計)。' });
+    return;
+  }
+
+  const result = Validator.validate({
+    mode, sheetData: tableData, headerRow, endRow, startCol, endCol,
+    selectedIndices, selectedSigns: signs,
+    keywords: { trigger: [], exclude: [] }, sumDirection: 'bottom',
+  });
+  lastResult = result;
+  renderTable();
+
+  const errs = result.errorList.filter(e => !e.ok);
+  if (errs.length > 0) {
+    renderSummary({ kind: 'err', text: `❌ 發現 ${errs.length} 個錯誤，差異總額 ${result.totalDiff.toLocaleString(undefined,{maximumFractionDigits:2})}` });
+    const list = document.getElementById('error-list');
+    list.innerHTML = errs.map(e => `<li><span class="ei">🔴</span><span>${e.message}</span></li>`).join('');
+    document.getElementById('error-card').style.display = 'block';
+  } else {
+    const okCount = Array.from(Validator.errors.values()).filter(e => e.ok).length;
+    if (okCount > 0)
+      renderSummary({ kind: 'ok', text: `✅ 驗算正確 — 共確認 ${okCount} 個合計值` });
+    else
+      renderSummary({ kind: 'warn', text: '⚠️ 驗算完成但未檢查到任何合計欄位 (可能選取設定不適用此資料)。' });
+    document.getElementById('error-card').style.display = 'none';
+  }
+}
+
+function renderSummary({ kind, text }) {
+  document.getElementById('summary').innerHTML = `<div class="summary-banner ${kind}">${text}</div>`;
+}
+
+// 範圍 input 變動時重繪
+['headerRow', 'endRow', 'startCol', 'endCol'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => { if (tableData.length) renderTable(); });
+});
+</script>
+</body>
+</html>
