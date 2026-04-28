@@ -1,12 +1,12 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
 import uvicorn
-
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from table_ocr import extract_table
 
 app = FastAPI(title="圖片計算器")
@@ -14,11 +14,24 @@ app = FastAPI(title="圖片計算器")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Serve PWA files from root
+@app.get("/manifest.json")
+async def manifest():
+    path = os.path.join(STATIC_DIR, "manifest.json")
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+@app.get("/sw.js")
+async def sw():
+    path = os.path.join(STATIC_DIR, "sw.js")
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
     index_path = os.path.join(STATIC_DIR, "index.html")
-    with open(index_path, "r", encoding="utf-8") as f:
+    with open(index_path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -49,5 +62,4 @@ async def analyze(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-    import ssl
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
