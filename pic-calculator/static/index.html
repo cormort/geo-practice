@@ -184,6 +184,11 @@
     .field select { min-width: 100%; }
   }
 </style>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#4361ee">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="圖片計算器">
 </head>
 <body>
 
@@ -769,6 +774,13 @@ function renderSummary({ kind, text }) {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', () => { if (tableData.length) renderTable(); });
 });
+
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(err => {
+    console.log('SW registration failed:', err);
+  });
+}
 </script>
 </body>
 </html>
